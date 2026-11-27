@@ -5,7 +5,8 @@ import java.util.List;
 
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
+import client.RestClient;
+import constants.Routes;
 import io.restassured.http.ContentType;
 import jsonArrayAPI.JsonArrayPoJo.UserData;
 import static io.restassured.RestAssured.given;
@@ -37,24 +38,22 @@ public class JsonArrayTest {
 	    		             .UserData(userdata)
 	    		             .support(support)
 	    		             .build();
-	    
-	    RestAssured.baseURI = "https://reqres.in";
-	     given().log().all()
+	     given().spec(RestClient.reqres())
 	     .contentType(ContentType.JSON)
 	        .queryParam("page", 1)
 	         .body(user)
 	          .when()
-	           .post("/api/users")
-	             .then().log().all()
+	           .post(Routes.REQRES_USERS)
+	             .then()
 	               .assertThat() 
 	                 .statusCode(201);
 	    
-	     given()
+	     given().spec(RestClient.reqres())
 	     .contentType(ContentType.JSON)
 	        .queryParam("page", 1)
 	          .body(user)
                .when()
-                 .get("/api/users")
+                 .get(Routes.REQRES_USERS)
                    .then()
                      .assertThat() 
                        .statusCode(200);

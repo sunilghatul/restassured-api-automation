@@ -1,29 +1,43 @@
 package authAPI;
 
+import static org.hamcrest.Matchers.containsString;
+
+import static io.restassured.RestAssured.given;
+
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
-import io.restassured.path.json.JsonPath;
-import io.restassured.response.Response;
+import client.RestClient;
+import constants.Routes;
+import config.ConfigReader;
 
 public class BasicAuth {
 
-	
-	@Test
+
+	@Test(groups = "smoke")
 	public void AuthBasic()
 	{
-		RestAssured.baseURI="https://the-internet.herokuapp.com";
-	RestAssured.given().log().all()
+	given().spec(RestClient.herokuApp())
 		   .auth()
-		     .basic("admin", "admin")
+		     .basic(ConfigReader.get("basic.auth.username"), ConfigReader.get("basic.auth.password"))
 		       .when()
-		          .get("/basic_auth")
-		             .then().log().all()
+		          .get(Routes.HEROKU_BASIC_AUTH)
+		             .then()
 		               .assertThat()
-		                 .statusCode(400);
-	
-	
-		               
-		
+		                 .statusCode(200)
+		                   .and()
+		                     .body(containsString("Congratulations"));
+	}
+
+	@Test
+	public void AuthBasic_withInvalidCredentials()
+	{
+	given().spec(RestClient.herokuApp())
+		   .auth()
+		     .basic("wrongUser", "wrongPassword")
+		       .when()
+		          .get(Routes.HEROKU_BASIC_AUTH)
+		             .then()
+		               .assertThat()
+		                 .statusCode(401);
 	}
 }

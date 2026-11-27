@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "FakeStore product list",
+  "type": "array",
+  "minItems": 1,
+  "items": { "$ref": "fakestore-product-schema.json" }
+}

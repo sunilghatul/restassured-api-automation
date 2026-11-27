@@ -1,0 +1,6 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "GoRest user list",
+  "type": "array",
+  "items": { "$ref": "gorest-user-schema.json" }
+}

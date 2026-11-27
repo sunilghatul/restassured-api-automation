@@ -3,75 +3,116 @@ package updateUserPOJO;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
-import org.testng.Assert;
+import java.util.Map;
+
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import io.restassured.path.json.JsonPath;
+import client.ResponseSpecs;
+import client.RestClient;
+import client.TestDataCleaner;
+import constants.Routes;
+import pojo.GoRestUser;
+import utils.TestDataUtil;
 
 public class UpdateUserWithPOJO {
-	
+
 	//Create user: POST
 	//Get User : GET
 	//Update the User : PUT/PATCH
-	
-	public String randomEmailId()
-	{
-		return "sunil" + System.currentTimeMillis() + "@gmail.com";
-	}
-	
-	@Test
+	//Delete the User : DELETE
+
+	private Integer Id;
+
+	@Test(groups = "smoke")
 	public void createUserwith_POJO()
 	{
-		RestAssured.baseURI="https://gorest.co.in";
-		User user = new User("Sunil", randomEmailId(), "male", "active");
-		
-	   Integer Id = given().log().all()
-		 .contentType(ContentType.JSON)
-		  .header("Authorization", "Bearer 2aa25560fdbfd3f7c1ffca5173463668d04580568905392b3dd3e80b5a241e7d")
+		GoRestUser user = new GoRestUser(null, "Sunil", TestDataUtil.randomEmail(), "male", "active");
+
+	   Id = given().spec(RestClient.gorest())
 		    .body(user)
 		       .when()
-		         .post("/public/v2/users")
-		           .then().log().all()
+		         .post(Routes.GOREST_USERS)
+		           .then()
+		             .spec(ResponseSpecs.created())
 		             .extract()
 		               .path("id");
-	   
-	   System.out.println(Id);
-	   
+
 	   user.setName("sunita");
 	   user.setGender("female");
-	   
-	   given().log().all()
-		 .contentType(ContentType.JSON)
-		   .header("Authorization", "Bearer 2aa25560fdbfd3f7c1ffca5173463668d04580568905392b3dd3e80b5a241e7d")
+
+	   given().spec(RestClient.gorest())
 		     .body(user)
+		     .pathParam("userId", Id)
 		       .when()
-		         .put("/public/v2/users/" + Id)
-		           .then().log().all()
-		             .assertThat()
-		               .statusCode(200)
+		         .put(Routes.GOREST_USER_BY_ID)
+		           .then()
+		             .spec(ResponseSpecs.ok())
 	                     .and()
-	                       .body("name", equalTo(user.getName()))
-	                       .body("gender", equalTo(user.getGender()));
-	   
-	   System.out.println("Updated Name is : " + user.getName());
-	   Assert.assertEquals("sunita", user.getName());
-	                       
-	   
-	   
-	   
-	  
-	   
-	   
-	   
-	   
-	   
-	   
+	                       .body("name", equalTo("sunita"))
+	                       .body("gender", equalTo("female"));
 	}
-	
-	
-	
-	
+
+	@Test
+	public void patchUser_updatesOnlyGivenField()
+	{
+		GoRestUser user = TestDataUtil.randomGoRestUser();
+
+		Id = given().spec(RestClient.gorest())
+		    .body(user)
+		       .when()
+		         .post(Routes.GOREST_USERS)
+		           .then()
+		             .spec(ResponseSpecs.created())
+		             .extract()
+		               .path("id");
+
+		// PATCH only the status - every other field must stay unchanged
+		given().spec(RestClient.gorest())
+		  .body(Map.of("status", "inactive"))
+		  .pathParam("userId", Id)
+		    .when()
+		      .patch(Routes.GOREST_USER_BY_ID)
+		        .then()
+		          .spec(ResponseSpecs.ok())
+		            .body("status", equalTo("inactive"))
+		            .body("name", equalTo(user.getName()))
+		            .body("email", equalTo(user.getEmail()))
+		            .body("gender", equalTo(user.getGender()));
+	}
+
+	@Test
+	public void deleteUser_thenGetReturns404()
+	{
+		Integer userId = given().spec(RestClient.gorest())
+		    .body(TestDataUtil.randomGoRestUser())
+		       .when()
+		         .post(Routes.GOREST_USERS)
+		           .then()
+		             .spec(ResponseSpecs.created())
+		             .extract()
+		               .path("id");
+
+		given().spec(RestClient.gorest())
+		  .pathParam("userId", userId)
+		    .when()
+		      .delete(Routes.GOREST_USER_BY_ID)
+		        .then()
+		          .spec(ResponseSpecs.noContent());
+
+		given().spec(RestClient.gorest())
+		  .pathParam("userId", userId)
+		    .when()
+		      .get(Routes.GOREST_USER_BY_ID)
+		        .then()
+		          .spec(ResponseSpecs.json(404))
+		            .body("message", equalTo("Resource not found"));
+	}
+
+	@AfterMethod(alwaysRun = true)
+	public void cleanUp() {
+		TestDataCleaner.deleteGoRestUser(Id);
+		Id = null;
+	}
 
 }

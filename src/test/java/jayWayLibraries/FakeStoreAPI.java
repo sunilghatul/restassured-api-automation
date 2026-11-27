@@ -5,71 +5,64 @@ import static io.restassured.RestAssured.given;
 import java.util.List;
 import java.util.Map;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 
-import io.restassured.RestAssured;
+import client.RestClient;
+import constants.Routes;
 import io.restassured.response.Response;
 
 
 public class FakeStoreAPI {
 
-	
+
 	@Test
 	public void JsonPathtest()
 	{
-		RestAssured.baseURI = "https://fakestoreapi.com";
-		Response response =given()
+		Response response =given().spec(RestClient.fakeStore())
 		  .when()
-		    .get("/products");
-		
-		response.prettyPrint();
-		
-		String jsonResponse =response.asString();
-		//System.out.println(jsonResponse);
-		
-		DocumentContext	ctx =JsonPath.parse(jsonResponse);
-		
+		    .get(Routes.FAKESTORE_PRODUCTS);
+
+		Assert.assertEquals(response.statusCode(), 200);
+		DocumentContext	ctx =JsonPath.parse(response.asString());
+
+	// filter: price > 50
 	List<Number> PriceList	=ctx.read("$[?(@.price>50)].price");
-	System.out.println(PriceList);
-	System.out.println("----------------------------------------------------");
-	
 	List<Integer> Idlist	=ctx.read("$[?(@.price>50)].id");
-	System.out.println(Idlist);
-	System.out.println("----------------------------------------------------");
-	
 	List<String> titleList	=ctx.read("$[?(@.price>50)].title");
-	System.out.println(titleList);
-	System.out.println("----------------------------------------------------");
-	
+	PriceList.forEach(p -> Assert.assertTrue(p.doubleValue() > 50, "filtered price should be > 50 but was " + p));
+	Assert.assertEquals(Idlist.size(), PriceList.size());
+	Assert.assertEquals(titleList.size(), PriceList.size());
+
+	// wildcard: all titles / prices
 	List<String> titleList1	=ctx.read("$.[*].title");
-	System.out.println(titleList1);
-	System.out.println("----------------------------------------------------");
-	
-	List<Double> Pricelist1	=ctx.read("$.[*].price");
-	System.out.println(Pricelist1);
-	System.out.println("----------------------------------------------------");
-	
-	List <Double> RateList = ctx.read("$.[?(@.rating.rate<4.0)].rating.rate");
-	System.out.println(RateList);
-	System.out.println("----------------------------------------------------");
-	
+	List<Number> Pricelist1	=ctx.read("$.[*].price");
+	Assert.assertFalse(titleList1.isEmpty());
+	Assert.assertEquals(Pricelist1.size(), titleList1.size());
+	Assert.assertTrue(Pricelist1.size() >= PriceList.size(), "filtered list cannot be bigger than the full list");
+
+	// nested filter: rating.rate < 4.0
+	List <Number> RateList = ctx.read("$.[?(@.rating.rate<4.0)].rating.rate");
+	RateList.forEach(r -> Assert.assertTrue(r.doubleValue() < 4.0, "filtered rate should be < 4 but was " + r));
+
+	// projection: two attributes per match
 	List<Map<String, Object>> twoAttributes = ctx.read("$.[?(@.rating.rate<4.0)].['title' , 'price']");
-	System.out.println(twoAttributes);
-	
+	Assert.assertEquals(twoAttributes.size(), RateList.size());
 	for(Map<String, Object> attriList : twoAttributes)
 	{
-		String title = (String)attriList.get("title");
-		Number price = (Number)attriList.get("price");
-		System.out.println(title);
-		System.out.println(price);
-		System.out.println("--------------------------------------------------");
+		Assert.assertTrue(attriList.get("title") instanceof String, "title");
+		Assert.assertTrue(attriList.get("price") instanceof Number, "price");
 	}
-	
-	
-	List <Map<String, Object>> AndOperators = ctx.read("$[?((@.category == 'jewelery') && (@.price>50))].['id', 'price', 'title']");
-	System.out.println(AndOperators);
+
+	// AND operator
+	List <Map<String, Object>> AndOperators = ctx.read("$[?((@.category == 'jewelery') && (@.price>50))].['id', 'price', 'title', 'category']");
+	for (Map<String, Object> product : AndOperators)
+	{
+		Assert.assertEquals(product.get("category"), "jewelery");
+		Assert.assertTrue(((Number) product.get("price")).doubleValue() > 50);
+	}
 	}
 }

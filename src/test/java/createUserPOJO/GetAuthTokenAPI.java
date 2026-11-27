@@ -1,84 +1,97 @@
 package createUserPOJO;
 
 import static io.restassured.RestAssured.given;
-
-import java.io.File;
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
+import client.RestClient;
+import constants.Routes;
 import io.restassured.http.ContentType;
 import pojo.PoJoPojO;
+import config.ConfigReader;
+import utils.FileUtil;
+import constants.SchemaPaths;
 
 public class GetAuthTokenAPI {
 
 	@Test()
 	public void withHardcodedata() {
-		
-		RestAssured.baseURI= "https://restful-booker.herokuapp.com";
-		
-		String tokenId = given().log().all()
+
+		String tokenId = given().spec(RestClient.booking())
 		 .contentType(ContentType.JSON)
 		    .body("{\n"
-		    		+ "    \"username\" : \"admin\",\n"
-		    		+ "    \"password\" : \"password123\"\n"
+		    		+ "    \"username\" : \"" + ConfigReader.get("booking.username") + "\",\n"
+		    		+ "    \"password\" : \"" + ConfigReader.get("booking.password") + "\"\n"
 		    		+ "}")
 		       .when()
-		          .post("/Auth")
+		          .post(Routes.BOOKING_AUTH)
 		             .then()
 		               .assertThat()
 		                 .statusCode(200)
+		                   .body(matchesJsonSchemaInClasspath(SchemaPaths.AUTH_TOKEN))
 		                    .extract()
 		                     .path("token");
-		
-		System.out.println("Token id is this " + tokenId);
-		Assert.assertNotNull(tokenId);	
-		
-		 		 
+
+		Assert.assertNotNull(tokenId);
 	}
-	
+
 @Test
 public void getAuthToken_withJsonFile() {
-		
-		RestAssured.baseURI= "https://restful-booker.herokuapp.com";
-		
-		String tokenId = given().log().all()
+
+		String tokenId = given().spec(RestClient.booking())
 		 .contentType(ContentType.JSON)
-		    .body(new File(".\\src\\test\\resource\\pojo\\Auth.json"))
+		    .body(FileUtil.getFile("json/Auth.json"))
 		       .when()
-		          .post("/Auth")
+		          .post(Routes.BOOKING_AUTH)
 		             .then()
 		               .assertThat()
 		                 .statusCode(200)
+		                   .body(matchesJsonSchemaInClasspath(SchemaPaths.AUTH_TOKEN))
 		                    .extract()
 		                     .path("token");
-		
-		System.out.println("Token id is this " + tokenId);
+
 		Assert.assertNotNull(tokenId);
-		
+
 }
 
-@Test(enabled=true)
+@Test(groups = "smoke")
 public void getAuthToken_withPOJO() {
-	
-	PoJoPojO credentials = new PoJoPojO("admin", "password123");
-		
-		RestAssured.baseURI= "https://restful-booker.herokuapp.com";
-		
-		String tokenId = given().log().all()
+
+	PoJoPojO credentials = new PoJoPojO(ConfigReader.get("booking.username"), ConfigReader.get("booking.password"));
+
+		String tokenId = given().spec(RestClient.booking())
 		 .contentType(ContentType.JSON)
 		    .body(credentials)  //here need to do serialization pojo to json ...ObjectMapper
 		       .when()
-		          .post("/Auth")
+		          .post(Routes.BOOKING_AUTH)
+		             .then()
+		               .assertThat()
+		                 .statusCode(200)
+		                   .body(matchesJsonSchemaInClasspath(SchemaPaths.AUTH_TOKEN))
+		                    .extract()
+		                     .path("token");
+
+		Assert.assertNotNull(tokenId);
+
+}
+
+@Test
+public void getAuthToken_withInvalidCredentials() {
+
+		// restful-booker returns 200 with {"reason":"Bad credentials"} instead of a 4xx
+		String reason = given().spec(RestClient.booking())
+		 .contentType(ContentType.JSON)
+		    .body(new PoJoPojO("invalidUser", "invalidPassword"))
+		       .when()
+		          .post(Routes.BOOKING_AUTH)
 		             .then()
 		               .assertThat()
 		                 .statusCode(200)
 		                    .extract()
-		                     .path("token");
-		
-		System.out.println("Token id is this " + tokenId);
-		Assert.assertNotNull(tokenId);
-		
+		                     .path("reason");
+
+		Assert.assertEquals(reason, "Bad credentials");
 }
 }

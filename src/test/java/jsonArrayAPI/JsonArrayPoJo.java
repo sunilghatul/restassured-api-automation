@@ -2,11 +2,14 @@ package jsonArrayAPI;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -21,6 +24,7 @@ public class JsonArrayPoJo {
 	private Support support;
 	
 	
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	@Data
 	@AllArgsConstructor
 	@NoArgsConstructor
@@ -35,6 +39,7 @@ public class JsonArrayPoJo {
 		
 	}
 	
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	@Data
 	@AllArgsConstructor
 	@NoArgsConstructor

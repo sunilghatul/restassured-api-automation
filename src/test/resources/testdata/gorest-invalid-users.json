@@ -1,0 +1,32 @@
+[
+  {
+    "case": "invalid email format",
+    "name": "Sunil", "email": "not-an-email", "gender": "male", "status": "active",
+    "field": "email", "message": "is invalid"
+  },
+  {
+    "case": "blank email",
+    "name": "Sunil", "email": "", "gender": "male", "status": "active",
+    "field": "email", "message": "can't be blank"
+  },
+  {
+    "case": "blank name",
+    "name": "", "email": "RANDOM", "gender": "male", "status": "active",
+    "field": "name", "message": "can't be blank"
+  },
+  {
+    "case": "invalid gender",
+    "name": "Sunil", "email": "RANDOM", "gender": "other", "status": "active",
+    "field": "gender", "message": "can't be blank, can be male of female"
+  },
+  {
+    "case": "blank gender",
+    "name": "Sunil", "email": "RANDOM", "gender": "", "status": "active",
+    "field": "gender", "message": "can't be blank, can be male of female"
+  },
+  {
+    "case": "invalid status",
+    "name": "Sunil", "email": "RANDOM", "gender": "female", "status": "pending",
+    "field": "status", "message": "can't be blank"
+  }
+]

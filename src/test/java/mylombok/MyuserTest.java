@@ -3,60 +3,58 @@ package mylombok;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import updateUserPOJO.User;
+import client.ResponseSpecs;
+import client.RestClient;
+import client.TestDataCleaner;
+import constants.Routes;
+import pojo.GoRestUser;
+import utils.TestDataUtil;
 
 public class MyuserTest {
 
+	private Integer Id;
 
-	public String randomEmailId()
-	{
-		return "sunil" + System.currentTimeMillis() + "@gmail.com";
-	}
-	
 	@Test
 	public void cCreateAndUpdateUser_WithPOJO()
 	{
-		RestAssured.baseURI="https://gorest.co.in";
-		Myuser	myUserLombok = new Myuser.MyuserBuilder() 
+		// Lombok @Builder
+		GoRestUser myUserLombok = GoRestUser.builder()
 		          .name("Sanjay")
-		          .email(randomEmailId())
+		          .email(TestDataUtil.randomEmail())
 		          .gender("male")
 		          .status("active")
 		          .build();
-		
-	   Integer Id = given().log().all()
-		 .contentType(ContentType.JSON)
-		  .header("Authorization", "Bearer 2aa25560fdbfd3f7c1ffca5173463668d04580568905392b3dd3e80b5a241e7d")
+
+	   Id = given().spec(RestClient.gorest())
 		    .body(myUserLombok)
 		       .when()
-		         .post("/public/v2/users")
-		           .then().log().all()
+		         .post(Routes.GOREST_USERS)
+		           .then()
+		             .spec(ResponseSpecs.created())
 		             .extract()
 		               .path("id");
-	   
-	   System.out.println(Id);
-	   
+
+	   // Lombok @Data setters
 	   myUserLombok.setName("Rohit");
 	   myUserLombok.setGender("male");
-	   
-	   given().log().all()
-		 .contentType(ContentType.JSON)
-		   .header("Authorization", "Bearer 2aa25560fdbfd3f7c1ffca5173463668d04580568905392b3dd3e80b5a241e7d")
+
+	   given().spec(RestClient.gorest())
 		     .body(myUserLombok)
+		     .pathParam("userId", Id)
 		       .when()
-		         .put("/public/v2/users/" + Id)
-		           .then().log().all()
-		             .assertThat()
-		               .statusCode(200)
+		         .put(Routes.GOREST_USER_BY_ID)
+		           .then()
+		             .spec(ResponseSpecs.ok())
 	                     .and()
 	                       .body("name", equalTo(myUserLombok.getName()))
 	                       .body("gender", equalTo(myUserLombok.getGender()));
-	   
-	   
-	   
-}
+	}
+
+	@AfterMethod(alwaysRun = true)
+	public void cleanUp() {
+		TestDataCleaner.deleteGoRestUser(Id);
+	}
 }
