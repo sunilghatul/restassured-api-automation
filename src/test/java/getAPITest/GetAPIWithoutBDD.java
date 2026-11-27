@@ -1,27 +1,24 @@
 package getAPITest;
 
+import static io.restassured.RestAssured.given;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
+import client.RestClient;
+import constants.Routes;
 import io.restassured.response.Response;
 
-import static org.hamcrest.Matchers.equalTo;
 import io.restassured.specification.RequestSpecification;
 
 public class GetAPIWithoutBDD {
 
 	@Test
 	public void withoutBDD() {
-		RestAssured.baseURI = "https://fakestoreapi.com";
-		
-		RequestSpecification ReqSpec = RestAssured.given();
-		Response resp = ReqSpec.get("/contacts");
+		RequestSpecification ReqSpec = given().spec(RestClient.fakeStore());
+		Response resp = ReqSpec.get(Routes.CONTACTS);
 		int RespCode = resp.statusCode();
 		String statusLine = resp.statusLine();
-		System.out.println(RespCode + "Response Code");
-		System.out.println(statusLine + "Response Status Line");
 		
 		Assert.assertEquals(RespCode, 404);
 		//Assert.assertEquals(statusLine, "HTTP/1.1 200 OK");

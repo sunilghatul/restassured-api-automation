@@ -6,147 +6,126 @@ import static org.hamcrest.Matchers.equalTo;
 import java.util.List;
 
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
+import client.ResponseSpecs;
+import client.RestClient;
+import client.TestDataCleaner;
+import constants.Routes;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
+import pojo.GoRestUser;
+import utils.TestDataUtil;
 
 public class FetchResponsedata {
-	
-	
-	@Test(enabled=false)
+
+	private Integer createdUserId;
+
+	@Test
 	public void GetContactAPI_withInvalidToken()
 	{
-		
-		RestAssured.baseURI = "https://thinking-tester-contact-list.herokuapp.com";
-		
-		given().log().all()
+		given().spec(RestClient.contactList())
 		  .header("Authorization" , "Bearer ")
-		    
-		       .when().log().all()
-		       .get("/contacts")
-		         .then().log().all()
+		       .when()
+		       .get(Routes.CONTACTS)
+		         .then()
 		            .assertThat()
 		               .statusCode(401)
 		                 .and()
 		                   .body("error", equalTo("Please authenticate."));
-		                     
-		
 	}
-	
-	@Test(enabled=false)
+
+	@Test
 	public void GetContactAPI_withInvalidToken_Withextract()
 	{
-		
-		RestAssured.baseURI = "https://thinking-tester-contact-list.herokuapp.com";
-		
-		String errMsg =given().log().all()
+		String errMsg =given().spec(RestClient.contactList())
 		  .header("Authorization" , "Bearer ")
-		    
-		       .when().log().all()
-		       .get("/contacts")
-		         .then().log().all()
+		       .when()
+		       .get(Routes.CONTACTS)
+		         .then()
 		                   .extract()
 		                      .path("error");
-		
-		System.out.println(errMsg);
+
 		Assert.assertEquals(errMsg, "Please authenticate.");
-		                     
-		
 	}
-	
-	@Test(enabled=false)
+
+	@Test
 	public void GetSingleUser()
 	{
-		RestAssured.baseURI = "https://gorest.co.in";
-		Response resp =given()
+		// create our own user instead of relying on a hard-coded id that GoRest may have purged
+		GoRestUser user = TestDataUtil.randomGoRestUser();
+		createdUserId = given().spec(RestClient.gorest())
+		  .body(user)
+		    .when()
+		      .post(Routes.GOREST_USERS)
+		        .then()
+		          .spec(ResponseSpecs.created())
+		            .extract()
+		              .path("id");
+
+		Response resp =given().spec(RestClient.gorest())
+		  .pathParam("userId", createdUserId)
 		  .when()
-		     .get("/public/v2/users/7384593");
-		
-		
-		System.out.println(resp);
-		resp.prettyPrint();
-		
+		     .get(Routes.GOREST_USER_BY_ID);
+
 		JsonPath js = resp.jsonPath();
-		Object userid =js.get("id");
-		System.out.println(userid);
-		
-		int userid1 = js.getInt("id");
-		//System.out.println(userid1);
-		
-		String gender = js.getString("gender");
-		//System.out.println(gender);
-		
-		List<String> dataList = js.getList(gender);
-		//System.out.println(dataList);
-		
-		
-		
-		        
+		Assert.assertEquals(resp.statusCode(), 200);
+		Assert.assertEquals(js.getInt("id"), createdUserId.intValue());
+		Assert.assertEquals(js.getString("name"), user.getName());
+		Assert.assertEquals(js.getString("email"), user.getEmail());
+		Assert.assertEquals(js.getString("gender"), user.getGender());
 	}
 
-	
-	@Test(enabled=false)
+
+	@Test
 	public void GetUsersData()
 	{
-		RestAssured.baseURI = "https://gorest.co.in";
-		Response resp =given()
+		Response resp =given().spec(RestClient.gorest())
 		  .when()
-		     .get("/public/v2/users");
-		
-		resp.prettyPrint();
-	JsonPath js = resp.jsonPath();
-	
-	List<Integer> userids =js.getList("id");
-	//System.out.println(userids);
-	
+		     .get(Routes.GOREST_USERS);
 
+	JsonPath js = resp.jsonPath();
+	List<Integer> userids =js.getList("id");
 	List<String> userGenders =js.getList("gender");
-	//System.out.println(userGenders);
-	
-	for (Object e: userids)
-	{
-		System.out.println(e);
+
+	Assert.assertEquals(resp.statusCode(), 200);
+	Assert.assertFalse(userids.isEmpty(), "user list should not be empty");
+	Assert.assertEquals(userGenders.size(), userids.size(), "every user should have a gender");
+	userids.forEach(id -> Assert.assertNotNull(id));
+	userGenders.forEach(g -> Assert.assertTrue(g.matches("male|female"), "unexpected gender " + g));
 	}
-	}
-	
-	
+
+
 	@Test
 	public void getDetailData ()
 	{
-		RestAssured.baseURI = "https://fakestoreapi.com";
-		Response resp =given()
+		Response resp =given().spec(RestClient.fakeStore())
 		  .when()
-		     .get("/products");
-		resp.prettyPrint();
-		
+		     .get(Routes.FAKESTORE_PRODUCTS);
+
     	JsonPath js1 =resp.jsonPath();
-    	
     	List<Integer> ids =js1.getList("id");
-		System.out.println(ids);
-		
-		List<Object> prices =js1.getList("price");
-		System.out.println(prices);
-		
+		List<Number> prices =js1.getList("price");
 		List<Integer> Count =js1.getList("rating.count");
-		System.out.println("here is the Count : " +Count);
-		
-		List<Object> rate =js1.getList("rating.rate");
-		System.out.println("here is the rate : " +rate);
-		
+		List<Number> rate =js1.getList("rating.rate");
+
+		// assert on structure, not on catalogue values that can change at any time
+		Assert.assertFalse(ids.isEmpty(), "product list should not be empty");
+		Assert.assertEquals(prices.size(), ids.size());
+		Assert.assertEquals(Count.size(), ids.size());
+		Assert.assertEquals(rate.size(), ids.size());
 		for (int i=0; i<ids.size(); i++)
 		{
-			int id =ids.get(i);
-			Object price =prices.get(i);
-			int counts = Count.get(i);
-			Object rates =rate.get(i);
-			
-			//System.out.println("ID : " + id + "price : " + price + " counts :" +counts + "rates  :" +rates );
+			Assert.assertTrue(prices.get(i).doubleValue() >= 0, "price of product " + ids.get(i));
+			Assert.assertTrue(Count.get(i) >= 0, "rating.count of product " + ids.get(i));
+			Assert.assertTrue(rate.get(i).doubleValue() >= 0 && rate.get(i).doubleValue() <= 5, "rating.rate of product " + ids.get(i));
 		}
-		
-		
-		Assert.assertTrue(rate.contains(4.7f));
-		
+	}
+
+	@AfterMethod(alwaysRun = true)
+	public void cleanUp() {
+		TestDataCleaner.deleteGoRestUser(createdUserId);
+		createdUserId = null;
 	}
 }

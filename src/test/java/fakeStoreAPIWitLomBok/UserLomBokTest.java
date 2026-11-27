@@ -3,10 +3,9 @@ package fakeStoreAPIWitLomBok;
 import org.testng.annotations.Test;
 
 import fakeStoreAPIWitLomBok.UserLombok.Address.GeoLocation;
-import io.restassured.RestAssured;
+import client.RestClient;
+import constants.Routes;
 import io.restassured.http.ContentType;
-import io.restassured.path.json.JsonPath;
-import io.restassured.response.Response;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -23,21 +22,18 @@ public class UserLomBokTest {
 		
 		
 		UserLombok user=new UserLombok("sunil09@gmail.com", "Sunil123","Sunil@123", 888888888, name, address);
-		
-		RestAssured.baseURI= "https://fakestoreapi.com";
-	Integer Id = given().log().all()
+	Integer Id = given().spec(RestClient.fakeStore())
 		.contentType(ContentType.JSON)
 		  .body(user)
 		   .when()
-		     .post("/users")
-		       .then().log().all()
+		     .post(Routes.FAKESTORE_USERS)
+		       .then()
 		         .assertThat()
-                   .statusCode(200)
+                   .statusCode(201)
 		             .extract()
 		               .path("id");
 	
 		
-	System.out.println(Id);
 		
 		name.setFirstname("Puneet");
 		name.setLastname("Sharma");
@@ -46,19 +42,19 @@ public class UserLomBokTest {
 		address.setCity("Mumbai");
 		user.setPhone(99999999);	
 		
-		  given().log().all()
+		  given().spec(RestClient.fakeStore())
 		  .contentType(ContentType.JSON)
 		   .body(user)
+		   .pathParam("userId", Id)
 		    .when()
-		     .put("/users/" + Id)
-		       .then().log().all()
+		     .put(Routes.FAKESTORE_USER_BY_ID)
+		       .then()
 		        .assertThat()
 		         .statusCode(200)
 		          .and()
 		            .body("name.firstname", equalTo(name.getFirstname()));
 		             
 		  
-		  System.out.println("after put request firstname is " + name.getFirstname());
 	  	  
 		
 	}
@@ -92,16 +88,13 @@ public class UserLomBokTest {
 				               .address(address)
 				                .name(name)
 				                 .build();
-		
-		RestAssured.baseURI= "https://fakestoreapi.com";
-		
 		//Create user
-	Integer Id =given().log().all()
+	Integer Id =given().spec(RestClient.fakeStore())
 		  .contentType(ContentType.JSON)
 		   .body(user)
-		     .when().log().all()
-		       .post("/users")
-		         .then().log().all()
+		     .when()
+		       .post(Routes.FAKESTORE_USERS)
+		         .then()
 		           .extract()
 		             .path("id");
 	
@@ -114,12 +107,13 @@ public class UserLomBokTest {
 	
 	//Update User
 	
-	 given().log().all()
+	 given().spec(RestClient.fakeStore())
 	  .contentType(ContentType.JSON)
 	   .body(user)
+	   .pathParam("userId", Id)
 	    .when()
-	     .put("/users/" + Id)
-	       .then().log().all()
+	     .put(Routes.FAKESTORE_USER_BY_ID)
+	       .then()
 	        .assertThat()
 	         .statusCode(200)
 	          .and()
@@ -131,7 +125,6 @@ public class UserLomBokTest {
 	              
 	             
 	  
-	  System.out.println("after put request firstname is " + name.getFirstname());
 	
 	
 		        

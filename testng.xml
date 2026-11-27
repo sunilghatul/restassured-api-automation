@@ -1,0 +1,68 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- Full regression suite:  mvn test -->
+<suite name="RestAssured API Suite" verbose="1" parallel="classes" thread-count="4">
+
+	<listeners>
+		<listener class-name="listeners.RetryListener" />
+	</listeners>
+
+	<test name="Auth APIs">
+		<classes>
+			<class name="authAPI.BasicAuth" />
+			<class name="createUserPOJO.GetAuthTokenAPI" />
+		</classes>
+	</test>
+
+	<test name="Booking Flow">
+		<classes>
+			<class name="bookingApisFlow.BookingApiFeatureTest" />
+		</classes>
+	</test>
+
+	<test name="GET APIs">
+		<classes>
+			<class name="getAPITest.ProductAPIs" />
+			<class name="getAPITest.FetchResponsedata" />
+			<class name="getAPITest.GetAPIWithoutBDD" />
+			<class name="getAPITest.contactListAPI" />
+			<class name="getAPITest.GETAPIWithquerryParam" />
+			<class name="getAPITest.GetchData" />
+			<class name="jayWayLibraries.FakeStoreAPI" />
+		</classes>
+	</test>
+
+	<test name="POJO / Lombok / Deserialization">
+		<classes>
+			<class name="createUserPOJO.CreateUserAPI" />
+			<class name="updateUserPOJO.UpdateUserWithPOJO" />
+			<class name="mylombok.MyuserTest" />
+			<class name="fakeStoreAPIWitLomBok.UserLomBokTest" />
+			<class name="fakeStoreAPIWitLomBok.CreateAndUpdateWithBuilder" />
+			<class name="deserilization.MapperClass" />
+			<class name="deserilization.getDatainArray" />
+			<class name="deserilization.ProductAPIdeserilization" />
+			<class name="jsonArrayAPI.JsonArrayTest" />
+		</classes>
+	</test>
+
+	<test name="Payload Types">
+		<classes>
+			<class name="passDiffdataAsPayload" />
+		</classes>
+	</test>
+
+	<test name="Schema Validation">
+		<classes>
+			<class name="schemaValidation.SchemaValidationTest" />
+		</classes>
+	</test>
+
+	<test name="Negative Cases">
+		<classes>
+			<class name="negativeTests.GoRestNegativeTest" />
+			<class name="negativeTests.BookingNegativeTest" />
+			<class name="negativeTests.ReqResNegativeTest" />
+		</classes>
+	</test>
+
+</suite>

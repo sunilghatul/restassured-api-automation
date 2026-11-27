@@ -1,0 +1,16 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- Negative cases only:  mvn test -DsuiteXmlFile=testng-negative.xml -->
+<suite name="Negative Suite" verbose="1" parallel="classes" thread-count="4">
+
+	<listeners>
+		<listener class-name="listeners.RetryListener" />
+	</listeners>
+
+	<test name="Negative Cases">
+		<classes>
+			<class name="negativeTests.GoRestNegativeTest" />
+			<class name="negativeTests.BookingNegativeTest" />
+			<class name="negativeTests.ReqResNegativeTest" />
+		</classes>
+	</test>
+</suite>

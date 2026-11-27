@@ -2,58 +2,44 @@ package deserilization;
 
 import static io.restassured.RestAssured.given;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
+import client.ResponseSpecs;
+import client.RestClient;
+import constants.Routes;
 import io.restassured.response.Response;
+import pojo.GoRestUser;
 
 public class getDatainArray {
 
-	
+
 	@Test
-	public void getDataFromArray()
+	public void getDataFromArray() throws JsonProcessingException
 	{
-	
-	RestAssured.baseURI = "https://gorest.co.in";
-	Response res1 =given().log().all()
-			  .contentType(ContentType.JSON)
-			    .header("Authorization" , "Bearer 2aa25560fdbfd3f7c1ffca5173463668d04580568905392b3dd3e80b5a241e7d")
+	Response res1 =given().spec(RestClient.gorest())
 			      .when()
-	                .get("/public/v2/users");
-	
-	res1.prettyPrint();
-	
-	
+	                .get(Routes.GOREST_USERS)
+	                  .then()
+	                    .spec(ResponseSpecs.ok())
+	                      .extract()
+	                        .response();
+
+	// de-serialization of a JSON array into POJO[]
 	ObjectMapper mapper  = new ObjectMapper();
-	try {
-		User [] user =mapper.readValue(res1.getBody().asString(), User[].class);
-		
-		for (User e : user)
-		{
-			System.out.println(e.getId());
-			System.out.println(e.getName());
-			System.out.println(e.getEmail());
-			System.out.println(e.getGender());
-			System.out.println(e.getStatus());
-			
-			System.out.println("---------------------------------");
-		}
-	} catch (JsonMappingException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	} catch (JsonProcessingException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
+	GoRestUser [] users =mapper.readValue(res1.getBody().asString(), GoRestUser[].class);
+
+	Assert.assertTrue(users.length > 0, "User list should not be empty");
+	for (GoRestUser e : users)
+	{
+		Assert.assertNotNull(e.getId(), "id");
+		Assert.assertNotNull(e.getName(), "name");
+		Assert.assertTrue(e.getEmail().contains("@"), "email should be valid: " + e.getEmail());
+		Assert.assertTrue(e.getGender().matches("male|female"), "gender: " + e.getGender());
+		Assert.assertTrue(e.getStatus().matches("active|inactive"), "status: " + e.getStatus());
 	}
-	
-	
-	
-	
-	
 }
 }

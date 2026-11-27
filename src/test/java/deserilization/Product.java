@@ -2,7 +2,8 @@ package deserilization;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 public class Product {
 	    private int page;
@@ -25,6 +27,7 @@ public class Product {
  @Builder
  @AllArgsConstructor
  @NoArgsConstructor
+ @JsonIgnoreProperties(ignoreUnknown = true)
  @Data
  public static class Support
  {
@@ -35,6 +38,7 @@ public class Product {
  @Builder
  @AllArgsConstructor
  @NoArgsConstructor
+ @JsonIgnoreProperties(ignoreUnknown = true)
  @Data
  public static class UserData
  {

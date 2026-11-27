@@ -1,33 +1,50 @@
 package createUserPOJO;
 
 import static io.restassured.RestAssured.given;
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
+import static org.hamcrest.Matchers.equalTo;
 
-import java.io.File;
-
+import org.json.JSONObject;
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
+import client.ResponseSpecs;
+import client.RestClient;
+import client.TestDataCleaner;
+import constants.Routes;
+import constants.SchemaPaths;
+import utils.FileUtil;
+import utils.TestDataUtil;
 
 public class CreateUserAPI {
-	
-	@Test
+
+	private Integer Id;
+
+	@Test(groups = "smoke")
 	public void createUser()
 	{
-		RestAssured.baseURI= "https://gorest.co.in";
-		Integer Id =given().log().all()
-		.header("Authorization" ,"Bearer 2aa25560fdbfd3f7c1ffca5173463668d04580568905392b3dd3e80b5a241e7d")
-		  .contentType(ContentType.JSON)
-		    .body(new File (".\\src\\test\\resource\\json\\user.json"))
-		     .post("/public/v2/users")
+		// Load the payload from json/user.json and replace the email with a unique one
+		// (a static email fails with 422 "has already been taken" on the second run).
+		JSONObject payload = new JSONObject(FileUtil.readAsString("json/user.json"));
+		payload.put("email", TestDataUtil.randomEmail());
+
+		Id =given().spec(RestClient.gorest())
+		    .body(payload.toString())
+		     .post(Routes.GOREST_USERS)
 		       .then()
-		         .assertThat()
-		           .statusCode(201)
+		         .spec(ResponseSpecs.created())
+		             .body(matchesJsonSchemaInClasspath(SchemaPaths.GOREST_USER))
+		             .body("email", equalTo(payload.getString("email")))
 		             .extract()
 		               .path("id");
-		
-		System.out.println(Id);
-		       
+
+		Assert.assertNotNull(Id);
+	}
+
+	@AfterMethod(alwaysRun = true)
+	public void cleanUp() {
+		TestDataCleaner.deleteGoRestUser(Id);
 	}
 
 }

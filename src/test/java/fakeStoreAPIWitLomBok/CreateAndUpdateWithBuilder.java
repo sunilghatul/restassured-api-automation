@@ -5,7 +5,8 @@ import static org.hamcrest.Matchers.equalTo;
 
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
+import client.RestClient;
+import constants.Routes;
 import io.restassured.http.ContentType;
 
 public class CreateAndUpdateWithBuilder {
@@ -45,16 +46,13 @@ public class CreateAndUpdateWithBuilder {
 	               .address(address)
 	                .name(name)
 	                 .build();
-  
-  RestAssured.baseURI= "https://fakestoreapi.com";
-	
 	//Create user
-   Id =given().log().all()
+   Id =given().spec(RestClient.fakeStore())
 	  .contentType(ContentType.JSON)
 	   .body(user)
-	     .when().log().all()
-	       .post("/users")
-	         .then().log().all()
+	     .when()
+	       .post(Routes.FAKESTORE_USERS)
+	         .then()
 	           .extract()
 	             .path("id");
   
@@ -63,13 +61,10 @@ public class CreateAndUpdateWithBuilder {
 	@Test
 	public void UpdateUserWithBuilder()
 	{
-		CreateAndUpdateWithBuilder builder = new CreateAndUpdateWithBuilder();
-		builder.CreateUserWithBuilder();
-		
-		 
-		
-		
-		
+		// Create the user on THIS instance so name/geolocation/user/Id are populated
+		// (a new instance left these fields null -> NullPointerException).
+		CreateUserWithBuilder();
+
 		name.setFirstname("Ankur");
 		 geolocation.setLat("22.22");
 		   user.setPhone(666333);
@@ -77,12 +72,13 @@ public class CreateAndUpdateWithBuilder {
 		
 		//Update User
 		
-		 given().log().all()
+		 given().spec(RestClient.fakeStore())
 		  .contentType(ContentType.JSON)
 		   .body(user)
+		   .pathParam("userId", Id)
 		    .when()
-		     .put("/users/" + Id)
-		       .then().log().all()
+		     .put(Routes.FAKESTORE_USER_BY_ID)
+		       .then()
 		        .assertThat()
 		         .statusCode(200)
 		          .and()
@@ -94,9 +90,6 @@ public class CreateAndUpdateWithBuilder {
 		              
 		             
 		  
-		  System.out.println("After put request firstname is " + name.getFirstname());
-		  System.out.println("After put request lat is " +address.getGeolocation().getLat());
-		  System.out.println("After put request Phone is " +user.getPhone());
 	}
 
 }

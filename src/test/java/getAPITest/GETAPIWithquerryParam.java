@@ -1,95 +1,99 @@
 package getAPITest;
 
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
-
-import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import io.restassured.specification.RequestSpecification;
-
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
+
+import client.ResponseSpecs;
+import client.RestClient;
+import client.TestDataCleaner;
+import constants.Routes;
+import pojo.GoRestUser;
+import utils.TestDataUtil;
+
 public class GETAPIWithquerryParam {
-	
-	
-	@Test(enabled=false)
+
+	private Integer createdUserId;
+
+	@Test
 	public void GetAPIwithQuerryparam()
 	{
-		
-		RestAssured.baseURI = "https://www.gorest.co.in";
-		
-		given().log().all()
-		  .header("Authorization" , "Bearer 2aa25560fdbfd3f7c1ffca5173463668d04580568905392b3dd3e80b5a241e7d")
-		   .queryParam("name", "Patel")
+		// assert that the filter is applied - not on a result count that changes daily
+		given().spec(RestClient.gorest())
 		   .queryParam("status", "inactive")
-		     .when().log().all()
-		       .get("/public/v2/users")
-		         .then().log().all()
-		           .assertThat()
-		              .statusCode(200)
-		                .and()
-		                  .contentType(ContentType.JSON)
-		                     .body("$.size()", equalTo(10));
-		
+		   .queryParam("per_page", 10)
+		     .when()
+		       .get(Routes.GOREST_USERS)
+		         .then()
+		           .spec(ResponseSpecs.ok())
+		             .body("status", everyItem(equalTo("inactive")))
+		             .body("size()", lessThanOrEqualTo(10));
 	}
-	
-	@Test(enabled=false)
+
+	@Test
 	public void GetAPIwithQuerryparamWithHashMap()
 	{
-		Map <String, String> querymap = new HashMap<>();
-		querymap.put("name", "shiv");
-		querymap.put("status", "inactive");
-		RestAssured.baseURI = "https://www.gorest.co.in";
-		
-		given().log().all()
-		  .header("Authorization" , "Bearer 2aa25560fdbfd3f7c1ffca5173463668d04580568905392b3dd3e80b5a241e7d")
+		Map <String, Object> querymap = new HashMap<>();
+		querymap.put("gender", "female");
+		querymap.put("status", "active");
+		given().spec(RestClient.gorest())
 		     .queryParams(querymap)
-		       .when().log().all()
-		       .get("/public/v2/users")
-		         .then().log().all()
-		           .assertThat()
-		              .statusCode(200)
-		                .and()
-		                  .contentType(ContentType.JSON)
-		                     .body("$.size()", equalTo(2));
-		
+		       .when()
+		       .get(Routes.GOREST_USERS)
+		         .then()
+		           .spec(ResponseSpecs.ok())
+		             .body("gender", everyItem(equalTo("female")))
+		             .body("status", everyItem(equalTo("active")));
 	}
-	
+
 	@DataProvider
 	public Object [] [] getUserData()
 	{
 		return new Object[][]
 				{
-			{"7384604","male"},
-			{"7384603", "female"}
-			
+			{"male"},
+			{"female"}
 				};
-		
-	}
-	
-	@Test(dataProvider="getUserData")
-	public void GetAPIwithPathParameter(String userId, String gender)
-	{
-		
-		RestAssured.baseURI = "https://www.gorest.co.in";
-		
-		given().log().all()
-		  .header("Authorization" , "Bearer 2aa25560fdbfd3f7c1ffca5173463668d04580568905392b3dd3e80b5a241e7d")
-		     .pathParam("userId", userId)
-		     .pathParam("gender", gender)
-		       .when().log().all()
-		       .get("/public/v2/users/{userId}/gender/{gender}")
-		         .then().log().all();
-		          
-		                     
-		
 	}
 
-	
-	
+	@Test(dataProvider="getUserData")
+	public void GetAPIwithPathParameter(String gender)
+	{
+		// create a user of the given gender, then read it back through the {userId} path parameter
+		GoRestUser user = TestDataUtil.randomGoRestUser();
+		user.setGender(gender);
+
+		createdUserId = given().spec(RestClient.gorest())
+		  .body(user)
+		    .when()
+		      .post(Routes.GOREST_USERS)
+		        .then()
+		          .spec(ResponseSpecs.created())
+		            .extract()
+		              .path("id");
+
+		given().spec(RestClient.gorest())
+		     .pathParam("userId", createdUserId)
+		       .when()
+		       .get(Routes.GOREST_USER_BY_ID)
+		         .then()
+		           .spec(ResponseSpecs.ok())
+		             .body("id", equalTo(createdUserId))
+		             .body("gender", equalTo(gender));
+	}
+
+	@AfterMethod(alwaysRun = true)
+	public void cleanUp() {
+		TestDataCleaner.deleteGoRestUser(createdUserId);
+		createdUserId = null;
+	}
 
 }

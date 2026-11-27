@@ -1,11 +1,13 @@
 import org.testng.annotations.Test;
 
-import io.restassured.RestAssured;
+import client.RestClient;
+import constants.Routes;
+import config.ConfigReader;
 import io.restassured.http.ContentType;
 
 import static io.restassured.RestAssured.given;
 
-import java.io.File;
+import utils.FileUtil;
 
 public class passDiffdataAsPayload {
 	
@@ -13,14 +15,13 @@ public class passDiffdataAsPayload {
 	@Test
 	public void fileUpload()
 	{
-		RestAssured.baseURI = "http://httpbin.org";
-		given().log().all()
+		given().spec(RestClient.httpbin())
 		  .contentType(ContentType.MULTIPART)		    
-		      .multiPart("Sunil's File" , new File("C:\\Users\\Sunil Ghatul\\Downloads\\1726055900487-image.png"))
+		      .multiPart("Sunil's File" , FileUtil.getFile(ConfigReader.get("upload.file.path")))
 		      .multiPart("Sunil", "API")
 		       .when()
-		        .post("/post")
-		          .then().log().all()
+		        .post(Routes.HTTPBIN_POST)
+		          .then()
 		            .statusCode(200);
 		       		         
 		         
@@ -31,13 +32,12 @@ public class passDiffdataAsPayload {
 	{
 		
 		String htmlpayload = "My API's can automate";
-		RestAssured.baseURI = "http://httpbin.org";
-		given().log().all()
+		given().spec(RestClient.httpbin())
 		 .contentType(ContentType.HTML)
 		   .body(htmlpayload)
 		     .when()
-		       .post("/post")
-		         .then().log().all()
+		       .post(Routes.HTTPBIN_POST)
+		         .then()
 		           .statusCode(200);
 		   
 	}
@@ -56,16 +56,13 @@ public class passDiffdataAsPayload {
 				+ "    <MOBILE_NO>9876543210</MOBILE_NO>\n"
 				+ "    <RETURN_URL>https://example.com/callback</RETURN_URL>\n"
 				+ "    <PRODUCT_DESC>Electronics Purchase</PRODUCT_DESC>\n"
-				+ "</paymentRequest>`)";
-		
-		
-		RestAssured.baseURI = "http://httpbin.org";
-		given().log().all()
+				+ "</paymentRequest>";
+		given().spec(RestClient.httpbin())
 		 .contentType("application/xml;charset=utf-8")
 		   .body(Xmlpayload)
 		     .when()
-		       .post("/post")
-		         .then().log().all()
+		       .post(Routes.HTTPBIN_POST)
+		         .then()
 		           .statusCode(200);
 	
 	}
@@ -73,14 +70,13 @@ public class passDiffdataAsPayload {
 	@Test
 	public void textData ()
 	{
-		RestAssured.baseURI = "http://httpbin.org";
 		String textPayload = "My name is My name";
-		given().log().all()
+		given().spec(RestClient.httpbin())
 		 .contentType(ContentType.TEXT)
 		   .body(textPayload)
 		     .when()
-		       .post("/post")
-		         .then().log().all()
+		       .post(Routes.HTTPBIN_POST)
+		         .then()
 		           .statusCode(200);
 		
 	}
